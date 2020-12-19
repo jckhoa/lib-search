@@ -198,6 +198,7 @@ class LibSearchPanel {
 					}
 					case 'onSubmit':
 					{
+						this._panel.webview.postMessage({ command: 'setProgressBar', value: 0 });
 						this.executable = message.executable;
 						this.cmdOptions = message.cmdOptions;
 						this.searchText = message.search;
@@ -222,24 +223,35 @@ class LibSearchPanel {
 							incFiles[index] = item.trim();
 						});
 			
+						
 						walk(message.dir, true, (err: any, files: any[]) => {
-							const results:string[] = [];
+							const allFiles:string[] = [];
 							for (const pattern of incFiles)
 							{
 								const filePaths:string[] = files.filter((el: any) => (new RegExp(pattern + '$').test(path.extname(el).toLowerCase())));
 								
 								for (const el of filePaths)
 								{
-									const ops = [...options, el];
-									const proc = cp.spawnSync(this.executable, ops, {
-										encoding: 'utf8'
-									});
-
-									if (proc.stdout.includes(message.search))
-									{
-										results.push(el);
-									}
+									allFiles.push(el);
+									
 								}
+							}
+
+							const results:string[] = [];
+							for (let i = 0; i < allFiles.length; ++i)
+							{
+								const el = allFiles[i];
+								const ops = [...options, el];
+								const proc = cp.spawnSync(this.executable, ops, {
+									encoding: 'utf8'
+								});
+
+								if (proc.stdout.includes(message.search))
+								{
+									results.push(el);
+								}
+								const progress = (i + 1) * 100/allFiles.length;
+								this._panel.webview.postMessage({ command: 'setProgressBar', value: progress });
 							}
 							this._panel.webview.postMessage({ 
 								command: 'outputAvailable',
@@ -303,7 +315,7 @@ class LibSearchPanel {
 		// Local path to css styles
 		const styleResetPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'reset.css');
 		const stylesPathMainPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode.css');
-
+		const stylesW3 = vscode.Uri.joinPath(this._extensionUri, 'media', 'w3.css');
 		// Uri to load styles into webview
 		const stylesResetUri = webview.asWebviewUri(styleResetPath);
 		const stylesMainUri = webview.asWebviewUri(stylesPathMainPath);
@@ -326,7 +338,8 @@ class LibSearchPanel {
 
 				<link href="${stylesResetUri}" rel="stylesheet">
 				<link href="${stylesMainUri}" rel="stylesheet">
-
+				<link href="${stylesW3}" rel="stylesheet">
+				
 				<title>Library Search</title>
 			</head>
 			<body>
@@ -355,6 +368,9 @@ class LibSearchPanel {
 					<br>
 
 					<button id="btnSubmit" type="button" title="Start the search">Start</button>
+					<span class="mybar">
+						<div id="progressbar" class="myprogress" style="width:0%"></div>
+					</span>
 				</form> 
 
 				<pre id="output"></pre>

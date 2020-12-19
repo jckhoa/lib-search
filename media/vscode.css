@@ -101,3 +101,15 @@ button {
 input[type=submit] {
 	width: 120px;
 }
+
+.mybar {
+	width: 70%;
+	background-color: grey;
+}
+
+.myprogress {
+	width: 0%;
+	height: 30px;
+	line-height: 30px;
+	background-color: green;
+}

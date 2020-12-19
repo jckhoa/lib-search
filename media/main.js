@@ -25,6 +25,16 @@
             case 'outputAvailable':
                 document.getElementById("output").innerHTML = message.output;
                 break;
+            case 'setProgressBar':
+            {
+                let elem = document.getElementById("progressbar");
+                elem.style.width = message.value + '%';
+                if (message.value == 0)
+                    elem.innerHTML = '';
+                else
+                    elem.innerHTML = message.value + '%';
+                break;
+            }
         }
     });
 
@@ -63,5 +73,6 @@
             text: files[0].webkitRelativePath
         });
     });
+
 }()
 );
