@@ -5,6 +5,8 @@
     // eslint-disable-next-line no-undef
     const vscode = acquireVsCodeApi();
 
+    let submitBtn = document.getElementById("btnSubmit");
+
     // Handle messages sent from the extension to the webview
     window.addEventListener('message', event => {
         const message = event.data; // The json data that the extension sent
@@ -23,14 +25,26 @@
                 document.getElementById("fexecutable").value = message.file;
                 break;
             case 'outputAvailable':
+            {
+                // enable form
+                var form = document.getElementById("myform");
+                var elements = form.elements;
+                for (var i = 0, len = elements.length; i < len; ++i) {
+                    elements[i].disabled = false;
+                }
                 document.getElementById("output").innerHTML = message.output;
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = "Start";
                 break;
+            }
             case 'setProgressBar':
             {
                 let elem = document.getElementById("progressbar");
-                const percentage = message.value * 100 / message.total;
+                const percentage = Math.round(message.value * 100 / message.total);
                 elem.style.width = percentage + '%';
                 elem.innerHTML = percentage + '%';
+                if (message.value == 0)
+                    document.getElementById("output").innerHTML = '';
                 vscode.postMessage({command:'progressBarSet', value: message.value});
                 break;
             }
@@ -38,15 +52,30 @@
     });
 
     document.getElementById("btnSubmit").addEventListener("click", function()
-    {
-        vscode.postMessage({
-            command: 'onSubmit',
-            executable: document.getElementById("fexecutable").value,
-            cmdOptions: document.getElementById("fcmdoptions").value, 
-            search: document.getElementById("ftext").value,
-            dir: document.getElementById("fdir").value,
-            includes: document.getElementById("finclude").value
-        });
+    { 
+        if (submitBtn.innerHTML == "Start") {
+            // disable form
+            var form = document.getElementById("myform");
+            var elements = form.elements;
+            for (var i = 0, len = elements.length; i < len; ++i) {
+                elements[i].disabled = true;
+            }
+            vscode.postMessage({
+                command: 'onSubmit',
+                executable: document.getElementById("fexecutable").value,
+                cmdOptions: document.getElementById("fcmdoptions").value, 
+                search: document.getElementById("ftext").value,
+                dir: document.getElementById("fdir").value,
+                includes: document.getElementById("finclude").value
+            });
+            submitBtn.innerHTML = "Cancel";
+        }
+        else {
+            submitBtn.disabled = true;
+            vscode.postMessage({
+                command: 'cancel'
+            });
+        }
     });
 
     document.getElementById("btnBrowseDir").addEventListener("click", function()

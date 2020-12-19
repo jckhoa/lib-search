@@ -93,6 +93,7 @@ class LibSearchPanel {
 	public includeFiles: string | undefined;
 	public allFiles:string[] = [];
 	public results:string[] = [];
+	public isCancel = false;
 
 	public static readonly viewType = 'librarySearch';
 
@@ -167,7 +168,6 @@ class LibSearchPanel {
 						return;
 					case 'btnBrowseDirClicked':
 					{
-						vscode.window.showErrorMessage(message.text);
 						const options: vscode.OpenDialogOptions = {
 							canSelectMany: false,
 							canSelectFiles: false,
@@ -205,7 +205,7 @@ class LibSearchPanel {
 						this.searchText = message.search;
 						this.searchDirectory = message.dir;
 						this.includeFiles = message.includes;
-
+						this.isCancel = false;
 						// save configuration
 						const target = vscode.ConfigurationTarget.Global;
 						vscode.workspace.getConfiguration().update('conf.resource.executable', this.executable, target);
@@ -235,15 +235,26 @@ class LibSearchPanel {
 									this.allFiles.push(el);
 							}
 							this._panel.webview.postMessage({ command: 'setProgressBar', value: 0, total: this.allFiles.length});
-
-							
 						});
 
 						return;	
 					}
+					case 'cancel':
+					{
+						this.isCancel = true;
+						break;	
+					}
 					case 'progressBarSet':
 					{
-						const index = message.value;
+						if (this.isCancel)
+						{
+							this._panel.webview.postMessage({ 
+								command: 'outputAvailable',
+								output: this.results.join('\n') 
+							});
+							return;
+						}
+							const index = message.value;
 						if (index >= this.allFiles.length)
 						{
 							this._panel.webview.postMessage({ 
@@ -376,12 +387,13 @@ class LibSearchPanel {
 					<input type="text" id="finclude" name="finclude" value="*.dll" title="E.g. .lib;.dll">
 					<br>
 
-					<button id="btnSubmit" type="button" title="Start the search">Start</button>
-					<span class="mybar">
-						<div id="progressbar" class="myprogress" style="width:0%"></div>
-					</span>
 				</form> 
 
+				<button id="btnSubmit" type="button" title="Start the search">Start</button>
+				<span class="mybar">
+					<div id="progressbar" class="myprogress" style="width:0%"></div>
+				</span>
+				
 				<pre id="output"></pre>
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>

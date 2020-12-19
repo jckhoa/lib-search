@@ -87,6 +87,7 @@ class LibSearchPanel {
     constructor(panel, extensionUri) {
         this.allFiles = [];
         this.results = [];
+        this.isCancel = false;
         this._disposables = [];
         this._panel = panel;
         this._extensionUri = extensionUri;
@@ -109,7 +110,6 @@ class LibSearchPanel {
                     return;
                 case 'btnBrowseDirClicked':
                     {
-                        vscode.window.showErrorMessage(message.text);
                         const options = {
                             canSelectMany: false,
                             canSelectFiles: false,
@@ -145,6 +145,7 @@ class LibSearchPanel {
                         this.searchText = message.search;
                         this.searchDirectory = message.dir;
                         this.includeFiles = message.includes;
+                        this.isCancel = false;
                         // save configuration
                         const target = vscode.ConfigurationTarget.Global;
                         vscode.workspace.getConfiguration().update('conf.resource.executable', this.executable, target);
@@ -170,8 +171,20 @@ class LibSearchPanel {
                         });
                         return;
                     }
+                case 'cancel':
+                    {
+                        this.isCancel = true;
+                        break;
+                    }
                 case 'progressBarSet':
                     {
+                        if (this.isCancel) {
+                            this._panel.webview.postMessage({
+                                command: 'outputAvailable',
+                                output: this.results.join('\n')
+                            });
+                            return;
+                        }
                         const index = message.value;
                         if (index >= this.allFiles.length) {
                             this._panel.webview.postMessage({
@@ -308,12 +321,13 @@ class LibSearchPanel {
 					<input type="text" id="finclude" name="finclude" value="*.dll" title="E.g. .lib;.dll">
 					<br>
 
-					<button id="btnSubmit" type="button" title="Start the search">Start</button>
-					<span class="mybar">
-						<div id="progressbar" class="myprogress" style="width:0%"></div>
-					</span>
 				</form> 
 
+				<button id="btnSubmit" type="button" title="Start the search">Start</button>
+				<span class="mybar">
+					<div id="progressbar" class="myprogress" style="width:0%"></div>
+				</span>
+				
 				<pre id="output"></pre>
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>

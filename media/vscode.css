@@ -113,3 +113,8 @@ input[type=submit] {
 	line-height: 30px;
 	background-color: green;
 }
+
+button:disabled, input:disabled {
+	background-color: rgb(71, 71, 71);
+	color : #8a8a8a;
+}
