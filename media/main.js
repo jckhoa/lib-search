@@ -28,11 +28,10 @@
             case 'setProgressBar':
             {
                 let elem = document.getElementById("progressbar");
-                elem.style.width = message.value + '%';
-                if (message.value == 0)
-                    elem.innerHTML = '';
-                else
-                    elem.innerHTML = message.value + '%';
+                const percentage = message.value * 100 / message.total;
+                elem.style.width = percentage + '%';
+                elem.innerHTML = percentage + '%';
+                vscode.postMessage({command:'progressBarSet', value: message.value});
                 break;
             }
         }

@@ -85,6 +85,8 @@ const findFile = function (dir, filename, recursive = false, done) {
  */
 class LibSearchPanel {
     constructor(panel, extensionUri) {
+        this.allFiles = [];
+        this.results = [];
         this._disposables = [];
         this._panel = panel;
         this._extensionUri = extensionUri;
@@ -138,7 +140,6 @@ class LibSearchPanel {
                     }
                 case 'onSubmit':
                     {
-                        this._panel.webview.postMessage({ command: 'setProgressBar', value: 0 });
                         this.executable = message.executable;
                         this.cmdOptions = message.cmdOptions;
                         this.searchText = message.search;
@@ -160,31 +161,38 @@ class LibSearchPanel {
                             incFiles[index] = item.trim();
                         });
                         walk(message.dir, true, (err, files) => {
-                            const allFiles = [];
                             for (const pattern of incFiles) {
                                 const filePaths = files.filter((el) => (new RegExp(pattern + '$').test(path.extname(el).toLowerCase())));
-                                for (const el of filePaths) {
-                                    allFiles.push(el);
-                                }
+                                for (const el of filePaths)
+                                    this.allFiles.push(el);
                             }
-                            const results = [];
-                            for (let i = 0; i < allFiles.length; ++i) {
-                                const el = allFiles[i];
-                                const ops = [...options, el];
-                                const proc = cp.spawnSync(this.executable, ops, {
-                                    encoding: 'utf8'
-                                });
-                                if (proc.stdout.includes(message.search)) {
-                                    results.push(el);
-                                }
-                                const progress = (i + 1) * 100 / allFiles.length;
-                                this._panel.webview.postMessage({ command: 'setProgressBar', value: progress });
-                            }
+                            this._panel.webview.postMessage({ command: 'setProgressBar', value: 0, total: this.allFiles.length });
+                        });
+                        return;
+                    }
+                case 'progressBarSet':
+                    {
+                        const index = message.value;
+                        if (index >= this.allFiles.length) {
                             this._panel.webview.postMessage({
                                 command: 'outputAvailable',
-                                output: results.join('\n')
+                                output: this.results.join('\n')
                             });
-                        });
+                        }
+                        const el = this.allFiles[index];
+                        let ops = [];
+                        if (el.endsWith('.lib'))
+                            ops = ['/SYMBOLS', el];
+                        else if (el.endsWith('.dll'))
+                            ops = ['/EXPORTS', el];
+                        if (ops.length > 0) {
+                            const proc = cp.spawnSync(this.executable, ops, {
+                                encoding: 'utf8'
+                            });
+                            if (proc.stdout.includes(this.searchText))
+                                this.results.push(el);
+                        }
+                        this._panel.webview.postMessage({ command: 'setProgressBar', value: index + 1, total: this.allFiles.length });
                         return;
                     }
             }
