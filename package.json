@@ -1,7 +1,7 @@
 {
 	"name": "lib-search",
 	"description": "Lib search - A Webview API Sample",
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"publisher": "KhoaNguyen",
 	"engines": {
 		"vscode": "^1.47.0"
